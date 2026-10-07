@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аудио-резак</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2v3H3zm4-5h2v13H7zm4-4h2v21h-2zm4 6h2v9h-2zm4 3h2v3h-2z"/></svg>
+    <span>Аудио&#8209;резак</span>
+  </div>
+  <div class="meta" id="fileMeta" hidden></div>
+  <button class="btn ghost" id="newFileBtn" hidden>Другой файл</button>
+</header>
+
+<main>
+  <!-- ЭКРАН ЗАГРУЗКИ -->
+  <section class="dropzone" id="dropView">
+    <svg class="dz-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3 1.4 1.42L12 17.4l-5.7-5.69 1.4-1.42 3.3 3.3V4a1 1 0 0 1 1-1zM4 19h16v2H4z"/></svg>
+    <h1>Перетащите mp3 сюда</h1>
+    <p class="muted">или выберите файл на компьютере — всё обрабатывается прямо в браузере, ничего не загружается на сервер</p>
+    <button class="btn primary big" id="pickBtn">Выбрать файл</button>
+    <p class="hint">mp3, wav, ogg, m4a, flac — всё, что умеет открыть браузер</p>
+  </section>
+
+  <!-- РЕДАКТОР -->
+  <section id="editor" hidden>
+
+    <div class="card wavecard">
+      <canvas id="ruler" class="ruler"></canvas>
+      <canvas id="wave" class="wave"></canvas>
+      <div class="wavehint">Протяните мышью по волне — получится выделение. Края можно тянуть, а за синюю полоску сверху — двигать выделение целиком.</div>
+      <canvas id="minimap" class="minimap"></canvas>
+    </div>
+
+    <div class="toolbar">
+      <div class="group">
+        <button class="btn primary" id="playSelBtn" title="Пробел">
+          <span class="ico" id="playIco">▶</span><span id="playLabel">Выделение</span>
+        </button>
+        <button class="btn" id="playAllBtn" title="Воспроизвести весь трек">▶ Всё</button>
+        <button class="btn" id="stopBtn" title="Стоп">■</button>
+        <button class="btn toggle" id="loopBtn" title="Повтор (L)">↻ Повтор</button>
+      </div>
+      <div class="group">
+        <button class="btn" id="zoomOutBtn" title="Отдалить (−)">−</button>
+        <button class="btn" id="zoomInBtn" title="Приблизить (+)">+</button>
+        <button class="btn" id="fitBtn" title="Весь трек (0)">Весь трек</button>
+        <button class="btn" id="selAllBtn" title="Выделить всё (Ctrl+A)">Выделить всё</button>
+      </div>
+      <div class="group clock">
+        <span class="t-cur" id="curTime">0:00.000</span>
+        <span class="t-sep">/</span>
+        <span class="t-tot" id="totTime">0:00.000</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Фрагмент</h2>
+        <div class="fields">
+          <label class="field">
+            <span>Начало</span>
+            <input type="text" id="startIn" inputmode="decimal" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Конец</span>
+            <input type="text" id="endIn" inputmode="decimal" spellcheck="false">
+          </label>
+          <div class="field">
+            <span>Длительность</span>
+            <output id="durOut" class="durout">0:00.000</output>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn small" id="setStartBtn" title="Клавиша [">Начало = курсор</button>
+          <button class="btn small" id="setEndBtn" title="Клавиша ]">Конец = курсор</button>
+        </div>
+        <p class="hint">Формат времени: <code>1:23.456</code> или <code>83.456</code></p>
+      </div>
+
+      <div class="card">
+        <h2>Скачать фрагмент</h2>
+        <div class="fields">
+          <label class="field">
+            <span>Формат</span>
+            <select id="fmtSel">
+              <option value="mp3" selected>MP3</option>
+              <option value="wav">WAV (16 бит)</option>
+            </select>
+          </label>
+          <label class="field" id="brWrap">
+            <span>Битрейт</span>
+            <select id="brSel">
+              <option value="128">128 кбит/с</option>
+              <option value="192" selected>192 кбит/с</option>
+              <option value="256">256 кбит/с</option>
+              <option value="320">320 кбит/с</option>
+            </select>
+          </label>
+          <label class="field check">
+            <input type="checkbox" id="fadeChk" checked>
+            <span>Плавные края (20 мс) — без щелчков</span>
+          </label>
+        </div>
+        <button class="btn primary big full" id="dlBtn">Скачать фрагмент</button>
+        <div class="progress" id="prog" hidden><div class="bar" id="progBar"></div><span id="progTxt">0%</span></div>
+      </div>
+    </div>
+
+    <p class="shortcuts">
+      <b>Горячие клавиши:</b> пробел — играть/пауза · <kbd>←</kbd><kbd>→</kbd> — курсор · <kbd>[</kbd> <kbd>]</kbd> — края выделения ·
+      <kbd>+</kbd><kbd>−</kbd> — масштаб · <kbd>0</kbd> — весь трек · <kbd>L</kbd> — повтор · <kbd>Ctrl</kbd>+колесо — масштаб, колесо — прокрутка
+    </p>
+  </section>
+</main>
+
+<input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" hidden>
+<div class="overlay" id="overlay" hidden><div class="spinner"></div><span id="overlayTxt">Читаю файл…</span></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="vendor/lame.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
